@@ -30,3 +30,5 @@ const uploadOnCloudinry = async (localFilePath) => {
     }
   );
 };
+
+export {uploadOnCloudinry}
