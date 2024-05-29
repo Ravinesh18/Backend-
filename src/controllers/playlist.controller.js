@@ -151,15 +151,171 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 });
 const deletePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
+
+  if (!playlistId) {
+    throw new ApiError(400 , "Playlist ID required!")
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new ApiError(400 , "Playlist ID is invalid!")
+  }
+
+  const deletePlaylist = await Playlist.findByIdAndDelete(playlistId);
+
+  if (!deletePlaylist) {
+    throw new ApiError(400 , "Playlist not found!")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200 , deletePlaylist , "Playlist Succesfully deleted!")
+  )
 });
 const updatePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
+  const {name , description} = req.body
+
+  if (!playlistId) {
+    throw new ApiError(400 , "Playlist ID is required!")
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new ApiError(400 , "Invaid playlist ID")
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+
+  if (!playlist) {
+  throw new ApiError(400 , "Playlist not found!")
+  }
+
+  const updatePlaylist = await Playlist.findByIdAndUpdate(
+    playlist._id,{
+      name : name ? name :playlist.name,
+      description : description ? description : playlist.description,
+    },{
+      new : true
+    }
+  )
+
+  if (!updatePlaylist) {
+    throw new ApiError(400 , "Playlist not updated!")
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200 , updatePlaylist , "Playlist updated successfully!")
+  )
 });
+
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
+
+  if (!playlistId) {
+    throw new ApiError(400, "Playlist Id not found");
+  }
+  if (!videoId) {
+    throw new ApiError(400, "Video Id not found");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new ApiError(400, "Playlist Id is not valid");
+  }
+  if (!mongoose.Types.ObjectId.isValid(videoId)) {
+    throw new ApiError(400, "Video Id is not valid");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+  if (!playlist) {
+    throw new ApiError(400, "Playlist not found");
+  }
+
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(400, "Video not found");
+  }
+
+  if (playlist.videos.includes(videoId)) {
+    throw new ApiError(400, "Video is already present in playlist");
+  }
+
+  playlist.videos.push(videoId);
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    playlist,
+    { new: true }
+  );
+
+  if (!updatedPlaylist) {
+    throw new ApiError(400, "Video can not be added");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedPlaylist,
+        "video added to playlist succcessfully"
+      )
+    );
 });
+
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
+
+  if (!playlistId) {
+    throw new ApiError(400, "Playlist Id not found");
+  }
+  if (!videoId) {
+    throw new ApiError(400, "Video Id not found");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new ApiError(400, "Playlist Id is not valid");
+  }
+  if (!mongoose.Types.ObjectId.isValid(videoId)) {
+    throw new ApiError(400, "Video Id is not valid");
+  }
+
+  const playlist = await Playlist.findById(playlistId);
+  if (!playlist) {
+    throw new ApiError(400, "Playlist not found");
+  }
+
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(400, "Video not found");
+  }
+
+  if (!playlist.videos.includes(videoId)) {
+    throw new ApiError(400, "Video not found in playlist");
+  }
+
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+    {
+      $pull: {
+        videos: videoId,
+      },
+    },
+    { new: true }
+  );
+
+  if (!updatedPlaylist) {
+    throw new ApiError(400, "video can not be removed from the playlist");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedPlaylist,
+        "Video removed from playlist successfully"
+      )
+    );
 });
 
 export {
